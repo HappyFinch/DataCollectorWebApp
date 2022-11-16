@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from send_email import send_email
+from sqlalchemy.sql import func
 
 app = Flask(__name__)  # type: ignore
 app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:postgres123@localhost/height_collector'
@@ -36,13 +37,15 @@ def success():
             data_object = Data(email,height)
             db.session.add(data_object)
             db.session.commit()
-            send_email(email,height)
+            average_height  = db.session.query(func.avg(Data.height_)).scalar()
+            average_height=round(average_height,2)
+            count = db.session.query(Data.height_).count()
+            count = str(count)
+            send_email(email,height,average_height,count)
             return render_template('success.html') 
     return render_template('index.html',
     text='该邮箱地址已经提交过数据，请勿重复提交！') # 解决重复邮箱的问题
 
-
-    
 
 if __name__ == '__main__':
     app.debug=True
